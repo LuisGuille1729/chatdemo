@@ -26,7 +26,7 @@ const users = {};
 // let newMessage = "";
 
 //^ helper function: emit message and save to channels storage
-function broadcastNewMessage(channel, message, store = true) {
+function broadcastNewMessage(socket, channel, message, store = true) {
     if (channel == "*") {
         if (store) {
             channels.forEach((chn) => {
@@ -40,7 +40,7 @@ function broadcastNewMessage(channel, message, store = true) {
         if (store) {
             channels[channel - 1].push(message);
         }
-        io.in("channel" + channel).emit("newMessage", message);
+        socket.broadcast.in("channel" + channel).emit("newMessage", message);
     }
 }
 
@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
     // add user to data, transmit join message
     users[socket.id] = { id: socket.id, username: "#" + socket.id.toString().slice(0, 7), channel: 1 };
     const userData = users[socket.id]; // make an alias
-    broadcastNewMessage("*", "<p><em> A new user [" + userData.username + "] has joined the chat. <em></p>", false);
+    broadcastNewMessage(socket, "*", "<p><em> A new user [" + userData.username + "] has joined the chat. <em></p>", false);
 
     socket.once("newMessage", (data) => {
         console.log("First message of", data.user);
@@ -66,11 +66,11 @@ io.on("connection", (socket) => {
         switch (data.msg) {
             case "/admin-clear":
                 channels[userData.channel - 1] = [];
-                io.in("channel" + userData.channel).emit("forgetData");
-                broadcastNewMessage(userData.channel, "<p><em> An admin has cleared the channel </em></p>", false);
+                socket.in("channel" + userData.channel).emit("forgetData");
+                broadcastNewMessage(socket, userData.channel, "<p><em> An admin has cleared the channel </em></p>", false);
                 break;
             default:
-                broadcastNewMessage(userData.channel, "<p><strong>" + userData.username + "</strong>: " + data.msg + "</p>");
+                broadcastNewMessage(socket, userData.channel, "<p><strong>" + userData.username + "</strong>: " + data.msg + "</p>");
         }
     });
 
@@ -79,12 +79,12 @@ io.on("connection", (socket) => {
         console.log(userData.username + " switched to " + channelID);
 
         socket.leave("channel" + userData.channel);
-        broadcastNewMessage(userData.channel, "<p><em>" + userData.username + " has switched to channel " + channelID + "</em></p>", false);
+        broadcastNewMessage(socket, userData.channel, "<p><em>" + userData.username + " has switched to channel " + channelID + "</em></p>", false);
 
         loadChannelData(channelID);
 
         socket.join("channel" + channelID);
-        broadcastNewMessage(channelID, "<p><em>" + userData.username + " has joined the channel </em></p>", false);
+        broadcastNewMessage(socket, channelID, "<p><em>" + userData.username + " has joined the channel </em></p>", false);
 
         userData.channel = channelID;
     });
