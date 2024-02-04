@@ -26,7 +26,7 @@ const users = {};
 // let newMessage = "";
 
 //^ helper function: emit message and save to channels storage
-function broadcastNewMessage(socket, channel, message, store = true) {
+function broadcastNewMessage(socket, channel, message, store = true, useEmit = false) {
     if (channel == "*") {
         if (store) {
             channels.forEach((chn) => {
@@ -40,7 +40,13 @@ function broadcastNewMessage(socket, channel, message, store = true) {
         if (store) {
             channels[channel - 1].push(message);
         }
-        socket.broadcast.in("channel" + channel).emit("newMessage", message);
+
+        console.log(useEmit);
+        if (useEmit) {
+            io.in("channel" + channel).emit("newMessage", message);
+        } else {
+            socket.broadcast.in("channel" + channel).emit("newMessage", message);
+        }
     }
 }
 
@@ -48,6 +54,7 @@ function broadcastNewMessage(socket, channel, message, store = true) {
 io.on("connection", (socket) => {
     console.log("New user connected:", socket.id);
     socket.join("channel1");
+    socket.emit("forgetData");
     loadChannelData(1);
 
     // add user to data, transmit join message
@@ -66,8 +73,9 @@ io.on("connection", (socket) => {
         switch (data.msg) {
             case "/admin-clear":
                 channels[userData.channel - 1] = [];
-                socket.in("channel" + userData.channel).emit("forgetData");
-                broadcastNewMessage(socket, userData.channel, "<p><em> An admin has cleared the channel </em></p>", false);
+                io.in("channel" + userData.channel).emit("forgetData");
+                // socket.emit("forgetData");
+                broadcastNewMessage(socket, userData.channel, "<p><em> An admin has cleared the channel </em></p>", false, true);
                 break;
             default:
                 broadcastNewMessage(socket, userData.channel, "<p><strong>" + userData.username + "</strong>: " + data.msg + "</p>");
@@ -95,7 +103,20 @@ io.on("connection", (socket) => {
             socket.emit("newMessage", msg);
         });
     }
+
+    // Broadcast if disconnected
+    socket.on("disconnect", (socket) => {
+        console.log(socket.id);
+        broadcastNewMessage(socket, "*", "<p><em>" + userData.username + " has disconnected </em></p>", false);
+        delete users[socket.id];
+    });
 });
+
+// io.on("ping timeout", (socket) => {
+//     console.log(socket.id);
+//     broadcastNewMessage(socket, "*", "<p><em>" + users[socket.id].username + " has disconnected </em></p>");
+//     delete users[socket.id];
+// });
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "/views"));

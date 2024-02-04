@@ -24,6 +24,7 @@ btn.addEventListener("click", () => {
         user.disabled = true;
         output.innerHTML += "<p><strong>" + user.value + "</strong>: " + message.value + "</p>";
         socket.emit("newMessage", { user: user.value, msg: message.value, channel: parseInt(activeChannel.value) });
+        message.value = "";
     } else {
         alert("Username should be at least 2 characters; message should be non-empty.");
     }
