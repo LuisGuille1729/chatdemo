@@ -21,17 +21,35 @@ const io = new Server(httpServer);
 httpServer.listen(3000);
 
 const channels = [[], [], []];
+const users = {};
+
+// let newMessage = "";
+
+function broadcastNewMessage(channel, message) {
+    channels[channel].push(message);
+    io.emit("newRawMessage", message);
+}
 
 io.on("connection", (socket) => {
-    console.log("Connected", socket.id);
+    console.log("New user connected:", socket.id);
 
-    socket.emit("chatJoin");
+    // add user to data, transmit join message
+    users[socket.id] = { id: socket.id, username: socket.id.toString().slice(0, 7), channel: 1 };
+    const userData = users[socket.id]; // make an alias
+    // newMessage = "<p><em> A new user [#" + userData.username + "] has joined the chat. <em></p>";
+    // channels[userData.channel].push(newMessage);
+    // io.emit("newRawMessage", newMessage);
+    broadcastNewMessage(userData.channel, "<p><em> A new user [#" + userData.username + "] has joined the chat. <em></p>");
 
     socket.on("newMessage", (data) => {
         console.log(`[${data.channel}] ${data.user}: ${data.msg}`);
 
         channels[data.channel];
         io.emit("newMessage", data);
+    });
+
+    socket.on("joinChannel", (channelId) => {
+        console.log(channelId);
     });
 });
 

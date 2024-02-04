@@ -5,7 +5,7 @@ const socket = io("http://10.29.179.212:3000/");
 console.log(socket);
 
 // Query DOM
-let channel = document.querySelector('input[name="channels"]:checked');
+let activeChannel = document.querySelector('input[name="channels"]:checked');
 const message = document.getElementById("message");
 const user = document.getElementById("user");
 const btn = document.getElementById("send");
@@ -15,18 +15,20 @@ socket.on("hello", (arg) => {
     console.log(arg);
 });
 
+// Send message on submit click
 btn.addEventListener("click", () => {
-    channel = document.querySelector('input[name="channels"]:checked');
-    console.dir(channel.value);
+    activeChannel = document.querySelector('input[name="channels"]:checked');
+    console.dir(activeChannel.value);
 
-    if (user.value.length >= 2 && message.value.length >= 1 && ["1", "2", "3"].includes(channel.value)) {
+    if (user.value.length >= 2 && message.value.length >= 1 && ["1", "2", "3"].includes(activeChannel.value)) {
         user.disabled = true;
-        socket.emit("newMessage", { user: user.value, msg: message.value, channel: parseInt(channel.value) });
+        socket.emit("newMessage", { user: user.value, msg: message.value, channel: parseInt(activeChannel.value) });
     } else {
         alert("Username should be at least 2 characters; message should be non-empty.");
     }
 });
 
+// Update data when receive a new message
 socket.on("newMessage", (data) => {
     console.log(data);
     console.dir(output);
@@ -34,8 +36,25 @@ socket.on("newMessage", (data) => {
     output.innerHTML += "<p><strong>" + data.user + "</strong> :" + data.msg + "</p>";
 });
 
-socket.on("chatJoin", () => {
-    output.innerHTML += "<p><em> A new user has joined the chat. <em></p>";
+// Add any raw message
+socket.on("newRawMessage", (message) => {
+    output.innerHTML += message;
 });
 
-const channel1 = document.getElementById("channel1");
+// Send request to change channel
+const channelsCount = 3;
+const channels = [];
+for (let i = 1; i <= channelsCount; i++) {
+    channels.push(document.getElementById("channel" + i));
+}
+
+console.log(channels);
+
+channels.forEach((channel) => {
+    channel.addEventListener("click", () => {
+        if (channel.value != activeChannel.value) {
+            activeChannel = channel;
+            socket.emit("joinChannel", channel.value);
+        }
+    });
+});
