@@ -28,16 +28,8 @@ btn.addEventListener("click", () => {
     }
 });
 
-// Update data when receive a new message
-socket.on("newMessage", (data) => {
-    console.log(data);
-    console.dir(output);
-
-    output.innerHTML += "<p><strong>" + data.user + "</strong> :" + data.msg + "</p>";
-});
-
 // Add any raw message
-socket.on("newRawMessage", (message) => {
+socket.on("newMessage", (message) => {
     output.innerHTML += message;
 });
 
@@ -55,6 +47,12 @@ channels.forEach((channel) => {
         if (channel.value != activeChannel.value) {
             activeChannel = channel;
             socket.emit("joinChannel", channel.value);
+
+            output.innerHTML = "";
         }
     });
+});
+
+socket.on("forgetData", () => {
+    output.innerHTML = "";
 });
